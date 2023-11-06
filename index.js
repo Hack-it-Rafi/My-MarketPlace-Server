@@ -42,6 +42,53 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         })
+        app.get("/myJobs", async(req, res) => {
+            const myEmail = req.query.email;
+            const query = {employer_email: myEmail };
+            const options = {
+                sort: { job_title: 1 },
+            };
+            const cursor = JobsCollection.find(query, options);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+        // UPDATE myJobs
+        app.get("/myJobs/:id", async(req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const query = {_id: new ObjectId(id)};
+            const result = await JobsCollection.findOne(query);
+            res.send(result);
+        })
+        app.patch("/myJobs/:id", async(req,res)=>{
+            const id = req.params.id;
+            const updatedJobs = req.body;
+            const filter = {_id: new ObjectId(id)};
+            const options = {upsert:true};
+            const product = {
+                //{name, image, brand, type, price, rating, description}
+                $set:{
+                    name: updatedJobs.name,
+                    image: updatedJobs.image,
+                    brand: updatedJobs.brand,
+                    type: updatedJobs.type,
+                    price: updatedJobs.price,
+                    rating: updatedJobs.rating,
+                }
+            }
+
+            const result = await JobsCollectionCollection.updateOne(filter, product, options);
+            res.send(result);
+        })
+
+        // DELETE 
+        app.delete('/myJobs/:id', async(req,res)=>{
+            const id = req.params.id;
+            console.log(id);
+            const query = {_id: new ObjectId(id)};
+            const result = await JobsCollection.deleteOne(query);
+            res.send(result);
+        })
         
         app.get('/jobs/:id', async(req,res)=>{
             const id = req.params.id;
@@ -50,6 +97,7 @@ async function run() {
             const result = await JobsCollection.findOne(query);
             res.send(result);
         })
+        
 
         app.post('/jobs', async(req,res)=>{
             const newProduct = req.body;
@@ -73,6 +121,17 @@ async function run() {
         })
         app.get('/bids', async(req,res)=>{
             const cursor = BidsCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+        app.get("/myBids", async(req, res) => {
+            const bidderMail = req.query.email;
+            // console.log(jobCat);
+            const query = { bidderEmail: bidderMail };
+            const options = {
+                sort: { job_title: 1 },
+            };
+            const cursor = BidsCollection.find(query, options);
             const result = await cursor.toArray();
             res.send(result);
         })
