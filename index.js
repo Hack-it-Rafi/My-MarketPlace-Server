@@ -205,7 +205,21 @@ async function run() {
             const id = req.params.id;
             console.log(id);
             const query = { _id: new ObjectId(id) };
-            const result = await JobsCollection.findOne(query);
+            const result = await BidsCollection.findOne(query);
+            res.send(result);
+        })
+        app.patch("/bidRequests/:id", logger, verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const updatedStatus = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const job = {
+                $set: {
+                    status: updatedStatus.status
+                }
+            }
+
+            const result = await BidsCollection.updateOne(filter, job, options);
             res.send(result);
         })
 
