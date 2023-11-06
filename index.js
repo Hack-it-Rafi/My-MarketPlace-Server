@@ -189,6 +189,25 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         })
+        app.get("/bidRequests", logger, verifyToken, async (req, res) => {
+            const ownerEmail = req.query.email;
+            // console.log(jobCat);
+            const query = {ownerEmail: ownerEmail };
+            const options = {
+                sort: { job_title: 1 },
+            };
+            const cursor = BidsCollection.find(query, options);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+        // Bids Update
+        app.get("/bidRequests/:id", logger, verifyToken, async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const query = { _id: new ObjectId(id) };
+            const result = await JobsCollection.findOne(query);
+            res.send(result);
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
