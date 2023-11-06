@@ -9,7 +9,7 @@ const port = process.env.PORT || 5000;
 
 app.use(express.json());
 app.use(cors({
-    origin: ['http://localhost:5174'],
+    origin: ['http://localhost:5173'],
     credentials: true
 }));
 app.use(cookieParser());
@@ -30,10 +30,30 @@ const client = new MongoClient(uri, {
 });
 
 // my middleware
-const logger = async(req, res, next)=>{
+const logger = async (req, res, next) => {
     console.log("IN LOGGER");
     console.log('called: ', req.host, req.originalUrl);
     next();
+}
+
+const verifyToken = async(req,res,next)=>{
+    console.log("In VERIFYTOKEN");
+//     // console.log(req.cookies);
+    const token = req.cookies?.token;
+    console.log("Value of token in middleware: ",token);
+    if(!token){
+        return res.status(401).send({message: "not authorized"})
+    }
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded)=>{
+        if(err){
+            console.log(err);
+            return res.status(401).send({message: 'not authorized'})
+        }
+        console.log("Value in the token: ", decoded);
+        req.user = decoded;
+        next();
+    })
+    
 }
 
 async function run() {
@@ -42,6 +62,19 @@ async function run() {
         const database = client.db("MarketPlaceDB");
         const JobsCollection = database.collection("Jobs");
         const BidsCollection = database.collection("Bids");
+
+        // JWT
+        app.post('/jwt', async(req, res)=>{
+            const user = req.body;
+            console.log(user);
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'})
+            res
+            .cookie('token', token, {
+                httpOnly: true,
+                secure: false,
+            })
+            .send({success: true})
+        })
 
         // JOBS
         app.get("/categoryJobs", async (req, res) => {
@@ -55,9 +88,14 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         })
-        app.get("/myJobs", async (req, res) => {
+        app.get("/myJobs", logger, verifyToken, async (req, res) => {
             const myEmail = req.query.email;
             const query = { employer_email: myEmail };
+            console.log("Tok Token: ", req.cookies.token);
+            console.log(myEmail, req.user.email);
+            if(myEmail!==req.user.email){
+                return res.status(403).send({message: "Forbidden Access"})
+            }
             const options = {
                 sort: { job_title: 1 },
             };
@@ -66,14 +104,14 @@ async function run() {
             res.send(result);
         })
         // UPDATE myJobs
-        app.get("/myJobs/:id", async (req, res) => {
+        app.get("/myJobs/:id", logger, verifyToken, async (req, res) => {
             const id = req.params.id;
             console.log(id);
             const query = { _id: new ObjectId(id) };
             const result = await JobsCollection.findOne(query);
             res.send(result);
         })
-        app.patch("/myJobs/:id", async (req, res) => {
+        app.patch("/myJobs/:id", logger, verifyToken, async (req, res) => {
             const id = req.params.id;
             const updatedJobs = req.body;
             const filter = { _id: new ObjectId(id) };
@@ -98,7 +136,7 @@ async function run() {
         })
 
         // DELETE 
-        app.delete('/myJobs/:id', async (req, res) => {
+        app.delete('/myJobs/:id', logger, verifyToken, async (req, res) => {
             const id = req.params.id;
             console.log(id);
             const query = { _id: new ObjectId(id) };
@@ -115,7 +153,7 @@ async function run() {
         })
 
 
-        app.post('/jobs', async (req, res) => {
+        app.post('/jobs', logger, verifyToken, async (req, res) => {
             const newProduct = req.body;
             console.log(newProduct);
             const result = await JobsCollection.insertOne(newProduct);
@@ -129,18 +167,18 @@ async function run() {
 
         // BIDS
 
-        app.post('/bids', async (req, res) => {
+        app.post('/bids', logger, verifyToken, async (req, res) => {
             const newProduct = req.body;
             console.log(newProduct);
             const result = await BidsCollection.insertOne(newProduct);
             res.send(result);
         })
-        app.get('/bids', async (req, res) => {
+        app.get('/bids', logger, verifyToken, async (req, res) => {
             const cursor = BidsCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
-        app.get("/myBids", async (req, res) => {
+        app.get("/myBids", logger, verifyToken, async (req, res) => {
             const bidderMail = req.query.email;
             // console.log(jobCat);
             const query = { bidderEmail: bidderMail };
