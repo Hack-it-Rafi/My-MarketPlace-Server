@@ -178,6 +178,8 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         })
+
+
         app.get("/myBids", logger, verifyToken, async (req, res) => {
             const bidderMail = req.query.email;
             // console.log(jobCat);
@@ -189,6 +191,23 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         })
+        app.patch("/myBids/:id", logger, verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const updatedStatus = req.body;
+            console.log(updatedStatus.status, id, "Rafi here");
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const stat = {
+                $set: {
+                    status: updatedStatus.status
+                }
+            }
+
+            const result = await BidsCollection.updateOne(filter, stat, options);
+            res.send(result);
+        })
+
+
         app.get("/bidRequests", logger, verifyToken, async (req, res) => {
             const ownerEmail = req.query.email;
             // console.log(jobCat);
@@ -211,15 +230,16 @@ async function run() {
         app.patch("/bidRequests/:id", logger, verifyToken, async (req, res) => {
             const id = req.params.id;
             const updatedStatus = req.body;
+            console.log(updatedStatus.status, id, "Rafi here");
             const filter = { _id: new ObjectId(id) };
             const options = { upsert: true };
-            const job = {
+            const stat = {
                 $set: {
                     status: updatedStatus.status
                 }
             }
 
-            const result = await BidsCollection.updateOne(filter, job, options);
+            const result = await BidsCollection.updateOne(filter, stat, options);
             res.send(result);
         })
 
