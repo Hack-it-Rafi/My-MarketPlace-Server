@@ -192,39 +192,26 @@ async function run() {
             res.send(result);
         })
 
-
-        // app.get("/myBids", logger, verifyToken, async (req, res) => {
-        //     const bidderMail = req.query.email;
-        //     // console.log(jobCat);
-        //     const query = { bidderEmail: bidderMail };
-        //     const options = {
-        //         sort: { status: 1 },
-        //     };
-        //     const cursor = BidsCollection.find(query, options);
-        //     const result = await cursor.toArray();
-        //     res.send(result);
-        // })
         app.get("/myBids", logger, verifyToken, async (req, res) => {
             const bidderMail = req.query.email;
             const query = { bidderEmail: bidderMail };
-
+        
             const cursor = BidsCollection.find(query);
             const results = await cursor.toArray();
-
-            // Define a custom sort order function
+        
+            const nonSortedResults = results.slice();
             const customSort = (a, b) => {
                 const statusOrder = { pending: 1, "In Progress": 2, Rejected: 3, Complete: 4 };
                 return statusOrder[a.status] - statusOrder[b.status];
             };
-
-            // Sort the results using the custom sort order function
             results.sort(customSort);
-
-            res.send(results);
+        
+            console.log(results);
+            console.log(nonSortedResults);
+        
+            res.send({ results, nonSortedResults });
         });
-
-
-
+        
         app.patch("/myBids/:id", logger, verifyToken, async (req, res) => {
             const id = req.params.id;
             const updatedStatus = req.body;
